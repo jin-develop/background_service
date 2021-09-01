@@ -104,11 +104,8 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
     private final BroadcastReceiver mBroadCastReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            Log.d(TAG, "BroadcastReceiver " + action);
             if (methodChannel == null) {
                 return;
-            } else {
-                Log.d(TAG, "methodChannel null");
             }
             JSONObject json = new JSONObject();
             if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
