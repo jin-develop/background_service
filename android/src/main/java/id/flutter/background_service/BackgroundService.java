@@ -44,7 +44,6 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
     private FlutterEngine backgroundEngine;
     private MethodChannel methodChannel;
     private DartExecutor.DartCallback dartCallback;
-    private boolean isManuallyStopped = false;
 
     String notificationTitle = "BackgroundService";
     String notificationContent = "Running";
@@ -52,14 +51,6 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
     @Override
     public IBinder onBind(Intent intent) {
         return null;
-    }
-
-    public static void enqueue(Context context) {
-        Intent intent = new Intent(context, WatchdogReceiver.class);
-        AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-
-        PendingIntent pIntent = PendingIntent.getBroadcast(context, 111, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        AlarmManagerCompat.setAndAllowWhileIdle(manager, AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5000, pIntent);
     }
 
     public static void setCallbackDispatcher(Context context, long callbackHandleId, boolean isForeground, boolean autoStartOnBoot) {
@@ -89,16 +80,6 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
     public static boolean isForegroundService(Context context) {
         SharedPreferences pref = context.getSharedPreferences("id.flutter.background_service", MODE_PRIVATE);
         return pref.getBoolean("is_foreground", true);
-    }
-
-    public void setManuallyStopped(boolean value) {
-        SharedPreferences pref = getSharedPreferences("id.flutter.background_service", MODE_PRIVATE);
-        pref.edit().putBoolean("is_manually_stopped", value).apply();
-    }
-
-    public static boolean isManuallyStopped(Context context) {
-        SharedPreferences pref = context.getSharedPreferences("id.flutter.background_service", MODE_PRIVATE);
-        return pref.getBoolean("is_manually_stopped", false);
     }
 
     private final BroadcastReceiver mBroadCastReceiver = new BroadcastReceiver() {
@@ -168,7 +149,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         } catch (Exception e) {
             Log.e(TAG, "Exception : " + e);
         }
-        notificationContent = "여기를 누르면 실행합니다.";
+        notificationContent = "여기를 누르면 '스마트 패스'가 실행됩니다.";
         updateNotificationInfo();
 
         IntentFilter intent = new IntentFilter();
@@ -179,11 +160,6 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
     @Override
     public void onDestroy() {
-        if (!isManuallyStopped) {
-            enqueue(this);
-        } else {
-            setManuallyStopped(true);
-        }
         unregisterReceiver(mBroadCastReceiver);
         stopForeground(true);
         isRunning.set(false);
@@ -247,8 +223,6 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        setManuallyStopped(false);
-        enqueue(this);
         runService();
 
         return START_STICKY;

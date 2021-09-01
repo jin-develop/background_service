@@ -30,7 +30,7 @@ import io.flutter.plugin.common.JSONMethodCodec;
 
 /** BackgroundServicePlugin */
 public class BackgroundServicePlugin extends BroadcastReceiver implements FlutterPlugin, MethodCallHandler, ServiceAware {
-  private static final String TAG = "BackgroundServicePlugin";
+  private static final String TAG = "BackgroundService";
   private static final List<BackgroundServicePlugin> _instances = new ArrayList<>();
 
   public BackgroundServicePlugin(){
@@ -74,7 +74,6 @@ public class BackgroundServicePlugin extends BroadcastReceiver implements Flutte
         boolean autoStartOnBoot = arg.getBoolean("auto_start_on_boot");
 
         BackgroundService.setCallbackDispatcher(context, callbackHandle, isForeground, autoStartOnBoot);
-        BackgroundService.enqueue(context);
 
         Intent intent = new Intent(context, BackgroundService.class);
         if (isForeground){
