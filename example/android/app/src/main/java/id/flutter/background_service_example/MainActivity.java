@@ -1,4 +1,4 @@
-package com.example.background_service_example;
+package id.flutter.background_service_example;
 
 import io.flutter.embedding.android.FlutterActivity;
 

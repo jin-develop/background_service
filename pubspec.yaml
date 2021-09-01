@@ -27,7 +27,7 @@ flutter:
   plugin:
     platforms:
       android:
-        package: com.example.background_service
+        package: id.flutter.background_service
         pluginClass: BackgroundServicePlugin
       ios:
         pluginClass: BackgroundServicePlugin
