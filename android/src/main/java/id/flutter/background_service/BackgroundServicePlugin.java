@@ -148,15 +148,6 @@ public class BackgroundServicePlugin extends BroadcastReceiver implements Flutte
   public void onAttachedToService(@NonNull ServicePluginBinding binding) {
     Log.d(TAG, "onAttachedToService");
     this.service = (BackgroundService) binding.getService();
-    if (channel != null) {
-      JSONObject json = new JSONObject();
-      try {
-        json.put("action", "initComplete");
-        channel.invokeMethod("onReceiveData", json);
-      } catch (JSONException e) {
-        e.printStackTrace();
-      }
-    }
   }
 
   @Override

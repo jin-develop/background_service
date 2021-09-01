@@ -9,3 +9,7 @@
 ## 0.0.3
 
 * send init complete message
+
+## 0.0.4
+
+* enable start service after boot complete intent

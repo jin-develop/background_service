@@ -232,7 +232,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                 intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
             }
 
-            PendingIntent pi = PendingIntent.getActivity(BackgroundService.this, 99778, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+            PendingIntent pi = PendingIntent.getActivity(BackgroundService.this, 1, intent, PendingIntent.FLAG_CANCEL_CURRENT);
             NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, "CHANNEL_DEFAULT")
                     .setSmallIcon(resource)
                     .setAutoCancel(true)
@@ -241,7 +241,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                     .setContentText(notificationContent)
                     .setContentIntent(pi);
 
-            startForeground(99778, mBuilder.build());
+            startForeground(1, mBuilder.build());
         }
     }
 
