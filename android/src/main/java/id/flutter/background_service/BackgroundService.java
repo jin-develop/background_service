@@ -5,12 +5,17 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.IBinder;
+import android.provider.Settings;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -96,6 +101,63 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         return pref.getBoolean("is_manually_stopped", false);
     }
 
+    private final BroadcastReceiver mBroadCastReceiver = new BroadcastReceiver() {
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            Log.d(TAG, "BroadcastReceiver " + action);
+            if (methodChannel == null) {
+                return;
+            }
+            JSONObject json = new JSONObject();
+            if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+                final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+
+                switch (state) {
+                    case BluetoothAdapter.STATE_ON:
+                        try {
+                            json.put("state", "btON");
+                            methodChannel.invokeMethod("onReceiveData", json);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    case BluetoothAdapter.STATE_OFF:
+                        try {
+                            json.put("state", "btOFF");
+                            methodChannel.invokeMethod("onReceiveData", json);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    case BluetoothAdapter.STATE_TURNING_ON:
+                        Log.d(TAG,"STATE_TURNING_ON");
+                        break;
+                    case BluetoothAdapter.STATE_TURNING_OFF:
+                        Log.d(TAG,"STATE_TURNING_OFF");
+                        break;
+                }
+            } else if(action.equals(LocationManager.PROVIDERS_CHANGED_ACTION)) {
+                LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+                boolean gps_state = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+                if (gps_state) {
+                    try {
+                        json.put("state", "gpsON");
+                        methodChannel.invokeMethod("onReceiveData", json);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    try {
+                        json.put("state", "gpsOFF");
+                        methodChannel.invokeMethod("onReceiveData", json);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    };
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -107,8 +169,13 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         } catch (Exception e) {
             Log.e(TAG, "Exception : " + e);
         }
-        notificationContent = "여기를 누르면 동작합니다.";
+        notificationContent = "여기를 누르면 실행합니다.";
         updateNotificationInfo();
+
+        IntentFilter intent = new IntentFilter();
+        intent.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+        intent.addAction(LocationManager.PROVIDERS_CHANGED_ACTION);
+        registerReceiver(mBroadCastReceiver, intent);
     }
 
     @Override
@@ -149,13 +216,26 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
     protected void updateNotificationInfo() {
         if (isForegroundService(this)) {
-
+            LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            boolean gps_state = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+            boolean bt_state = BluetoothAdapter.getDefaultAdapter().isEnabled();
             String packageName = getApplicationContext().getPackageName();
-            Intent i = getPackageManager().getLaunchIntentForPackage(packageName);
+            Intent intent = getPackageManager().getLaunchIntentForPackage(packageName);
+            int resource = R.drawable.noti_not_running;
+            if (gps_state && bt_state) {
+                resource = R.drawable.noti_running;
+            } else if (gps_state && !bt_state) {
+                intent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
+            } else if (!gps_state && bt_state) {
+                intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+            } else {
+                intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+            }
+            Log.d(TAG,"gps_state " + gps_state + " , bt_state " + bt_state);
 
-            PendingIntent pi = PendingIntent.getActivity(BackgroundService.this, 99778, i, PendingIntent.FLAG_CANCEL_CURRENT);
+            PendingIntent pi = PendingIntent.getActivity(BackgroundService.this, 99778, intent, PendingIntent.FLAG_CANCEL_CURRENT);
             NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, "CHANNEL_DEFAULT")
-                    //.setSmallIcon(R.drawable.ic_bg_service_small)
+                    .setSmallIcon(resource)
                     .setAutoCancel(true)
                     .setOngoing(true)
                     .setContentTitle(notificationTitle)
@@ -168,7 +248,6 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "onStartCommand");
         setManuallyStopped(false);
         enqueue(this);
         runService();
