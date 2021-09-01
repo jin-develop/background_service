@@ -1,6 +1,6 @@
 name: background_service
 description: background service support notification launch function
-version: 0.0.1
+version: 0.0.2
 homepage: https://github.com/jin-develop/background_service
 
 environment:

@@ -5,7 +5,7 @@ A flutter plugin for execute dart code in background.
 ## Android
 
 - No additional setting required.
-- To change notification icon, just add drawable icon with name `ic_bg_service_small`.
+- Support notify for bt, gps state
 
 ## iOS
 
@@ -29,7 +29,7 @@ import flutter_background_service // add this
     ) -> Bool {
 
         AppDelegate.registerPlugins(with: self)
-        SwiftFlutterBackgroundServicePlugin.setPluginRegistrantCallback { registry in
+        SwiftBackgroundServicePlugin.setPluginRegistrantCallback { registry in
             AppDelegate.registerPlugins(with: registry)
         }
 
@@ -57,7 +57,7 @@ Then use audioplayer plugin to play audio.
 ...
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  FlutterBackgroundService.initialize(onStart);
+  BackgroundService.initialize(onStart);
 
   runApp(MyApp());
 }

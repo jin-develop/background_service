@@ -107,6 +107,8 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
             Log.d(TAG, "BroadcastReceiver " + action);
             if (methodChannel == null) {
                 return;
+            } else {
+                Log.d(TAG, "methodChannel null");
             }
             JSONObject json = new JSONObject();
             if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
@@ -185,6 +187,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         } else {
             setManuallyStopped(true);
         }
+        unregisterReceiver(mBroadCastReceiver);
         stopForeground(true);
         isRunning.set(false);
 
@@ -231,7 +234,6 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
             } else {
                 intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
             }
-            Log.d(TAG,"gps_state " + gps_state + " , bt_state " + bt_state);
 
             PendingIntent pi = PendingIntent.getActivity(BackgroundService.this, 99778, intent, PendingIntent.FLAG_CANCEL_CURRENT);
             NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, "CHANNEL_DEFAULT")
