@@ -5,3 +5,7 @@
 ## 0.0.2
 
 * Fixed minor issue
+
+## 0.0.3
+
+* send init complete message
