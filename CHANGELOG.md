@@ -13,3 +13,7 @@
 ## 0.0.4
 
 * enable start service after boot complete intent
+
+## 0.0.5
+
+* Remove wakelock service and unuse code
