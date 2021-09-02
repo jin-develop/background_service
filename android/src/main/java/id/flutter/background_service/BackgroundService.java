@@ -1,6 +1,5 @@
 package id.flutter.background_service;
 
-import android.app.AlarmManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -19,7 +18,6 @@ import android.provider.Settings;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.core.app.AlarmManagerCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
@@ -45,8 +43,8 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
     private MethodChannel methodChannel;
     private DartExecutor.DartCallback dartCallback;
 
-    String notificationTitle = "BackgroundService";
-    String notificationContent = "Running";
+    String notificationTitle = "스마트 패스";
+    String notificationContent = "실행 준비중입니다.";
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -308,11 +306,6 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
             }
 
             if (method.equalsIgnoreCase("stopService")) {
-                isManuallyStopped = true;
-                Intent intent = new Intent(this, WatchdogReceiver.class);
-                PendingIntent pendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 111, intent, 0);
-                AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-                alarmManager.cancel(pendingIntent);
                 stopSelf();
                 result.success(true);
                 return;

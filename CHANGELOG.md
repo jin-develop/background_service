@@ -17,3 +17,7 @@
 ## 0.0.5
 
 * Remove wakelock service and unuse code
+
+## 0.0.6
+
+* Fixed build error
