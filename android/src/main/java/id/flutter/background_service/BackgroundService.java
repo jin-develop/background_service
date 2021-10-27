@@ -164,8 +164,6 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
         if (backgroundEngine != null) {
             backgroundEngine.getServiceControlSurface().detachFromService();
-            backgroundEngine.destroy();
-            backgroundEngine = null;
         }
 
         methodChannel = null;
@@ -224,6 +222,12 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         runService();
 
         return START_STICKY;
+    }
+
+    @Override
+    public boolean stopService(Intent name) {
+        Log.e(TAG, "stopService");
+        return super.stopService(name);
     }
 
     AtomicBoolean isRunning = new AtomicBoolean(false);
@@ -306,7 +310,8 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
             }
 
             if (method.equalsIgnoreCase("stopService")) {
-                stopSelf();
+                Intent intent = new Intent(getApplicationContext(), BackgroundService.class);
+                stopService(intent);
                 result.success(true);
                 return;
             }
