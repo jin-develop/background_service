@@ -21,3 +21,7 @@
 ## 0.0.6
 
 * Fixed build error
+
+## 0.1.0
+
+* Fixed context missing when stop service
