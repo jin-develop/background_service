@@ -17,6 +17,31 @@ import android.os.IBinder;
 import android.provider.Settings;
 import android.util.Log;
 
+import id.flutter.background_service.constant.ArgumentKey;
+import id.flutter.background_service.constant.ChannelName;
+import id.flutter.background_service.constant.MethodName;
+import id.flutter.background_service.delegate.BluetoothStateDelegate;
+import id.flutter.background_service.delegate.CallDelegate;
+import id.flutter.background_service.delegate.CharacteristicsDelegate;
+import id.flutter.background_service.delegate.DescriptorsDelegate;
+import id.flutter.background_service.delegate.DeviceConnectionDelegate;
+import id.flutter.background_service.delegate.DevicesDelegate;
+import id.flutter.background_service.delegate.LogLevelDelegate;
+import id.flutter.background_service.delegate.DiscoveryDelegate;
+import id.flutter.background_service.delegate.MtuDelegate;
+import id.flutter.background_service.delegate.RssiDelegate;
+import id.flutter.background_service.event.AdapterStateStreamHandler;
+import id.flutter.background_service.event.CharacteristicsMonitorStreamHandler;
+import id.flutter.background_service.event.ConnectionStateStreamHandler;
+import id.flutter.background_service.event.RestoreStateStreamHandler;
+import id.flutter.background_service.event.ScanningStreamHandler;
+import com.polidea.multiplatformbleadapter.BleAdapter;
+import com.polidea.multiplatformbleadapter.BleAdapterFactory;
+import com.polidea.multiplatformbleadapter.OnErrorCallback;
+import com.polidea.multiplatformbleadapter.OnEventCallback;
+import com.polidea.multiplatformbleadapter.ScanResult;
+import com.polidea.multiplatformbleadapter.errors.BleError;
+
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
@@ -24,6 +49,9 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.lang.UnsatisfiedLinkError;
 
@@ -34,6 +62,7 @@ import io.flutter.embedding.engine.loader.FlutterLoader;
 import io.flutter.plugin.common.JSONMethodCodec;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
+import io.flutter.plugin.common.EventChannel;
 import io.flutter.view.FlutterCallbackInformation;
 import io.flutter.view.FlutterMain;
 
@@ -45,6 +74,15 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
     String notificationTitle = "스마트 패스";
     String notificationContent = "실행 준비중입니다.";
+
+    private BleAdapter bleAdapter;
+    private List<CallDelegate> delegates = new LinkedList<>();
+
+    private AdapterStateStreamHandler adapterStateStreamHandler = new AdapterStateStreamHandler();
+    private RestoreStateStreamHandler restoreStateStreamHandler = new RestoreStateStreamHandler();
+    private ScanningStreamHandler scanningStreamHandler = new ScanningStreamHandler();
+    private ConnectionStateStreamHandler connectionStateStreamHandler = new ConnectionStateStreamHandler();
+    private CharacteristicsMonitorStreamHandler characteristicsMonitorStreamHandler = new CharacteristicsMonitorStreamHandler();
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -78,6 +116,19 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
     public static boolean isForegroundService(Context context) {
         SharedPreferences pref = context.getSharedPreferences("id.flutter.background_service", MODE_PRIVATE);
         return pref.getBoolean("is_foreground", true);
+    }
+
+    private void setupAdapter(Context context) {
+        bleAdapter = BleAdapterFactory.getNewAdapter(context);
+        delegates.add(new DeviceConnectionDelegate(bleAdapter, connectionStateStreamHandler));
+        delegates.add(new LogLevelDelegate(bleAdapter));
+        delegates.add(new DiscoveryDelegate(bleAdapter));
+        delegates.add(new BluetoothStateDelegate(bleAdapter));
+        delegates.add(new RssiDelegate(bleAdapter));
+        delegates.add(new MtuDelegate(bleAdapter));
+        delegates.add(new CharacteristicsDelegate(bleAdapter, characteristicsMonitorStreamHandler));
+        delegates.add(new DevicesDelegate(bleAdapter));
+        delegates.add(new DescriptorsDelegate(bleAdapter));
     }
 
     private final BroadcastReceiver mBroadCastReceiver = new BroadcastReceiver() {
@@ -252,7 +303,20 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
             backgroundEngine.getServiceControlSurface().attachToService(BackgroundService.this, null, isForegroundService(this));
 
             methodChannel = new MethodChannel(backgroundEngine.getDartExecutor().getBinaryMessenger(), "id.flutter/background_service_bg", JSONMethodCodec.INSTANCE);
+
+            final EventChannel bluetoothStateChannel = new EventChannel(backgroundEngine.getDartExecutor().getBinaryMessenger(), ChannelName.ADAPTER_STATE_CHANGES);
+            final EventChannel restoreStateChannel = new EventChannel(backgroundEngine.getDartExecutor().getBinaryMessenger(), ChannelName.STATE_RESTORE_EVENTS);
+            final EventChannel scanningChannel = new EventChannel(backgroundEngine.getDartExecutor().getBinaryMessenger(), ChannelName.SCANNING_EVENTS);
+            final EventChannel connectionStateChannel = new EventChannel(backgroundEngine.getDartExecutor().getBinaryMessenger(), ChannelName.CONNECTION_STATE_CHANGE_EVENTS);
+            final EventChannel characteristicMonitorChannel = new EventChannel(backgroundEngine.getDartExecutor().getBinaryMessenger(), ChannelName.MONITOR_CHARACTERISTIC);
+
             methodChannel.setMethodCallHandler(this);
+
+            scanningChannel.setStreamHandler(this.scanningStreamHandler);
+            bluetoothStateChannel.setStreamHandler(this.adapterStateStreamHandler);
+            restoreStateChannel.setStreamHandler(this.restoreStateStreamHandler);
+            connectionStateChannel.setStreamHandler(this.connectionStateStreamHandler);
+            characteristicMonitorChannel.setStreamHandler(this.characteristicsMonitorStreamHandler);
 
             dartCallback = new DartExecutor.DartCallback(getAssets(), FlutterInjector.instance().flutterLoader().findAppBundlePath(), callback);
             backgroundEngine.getDartExecutor().executeDartCallback(dartCallback);
@@ -271,11 +335,133 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         }
     }
 
+    private void isClientCreated(MethodChannel.Result result) {
+        result.success(bleAdapter != null);
+    }
+
+    private void createClient(MethodCall call, MethodChannel.Result result) {
+        try {
+            JSONObject arg = (JSONObject) call.arguments;
+
+            if (bleAdapter != null) {
+                Log.w(TAG, "Overwriting existing native client. Use BleManager#isClientCreated to check whether a client already exists.");
+            }
+            setupAdapter(getApplicationContext());
+            bleAdapter.createClient(arg.getString(ArgumentKey.RESTORE_STATE_IDENTIFIER),
+                    new OnEventCallback<String>() {
+                        @Override
+                        public void onEvent(String adapterState) {
+                            adapterStateStreamHandler.onNewAdapterState(adapterState);
+                        }
+                    }, new OnEventCallback<Integer>() {
+                        @Override
+                        public void onEvent(Integer restoreStateIdentifier) {
+                            restoreStateStreamHandler.onRestoreEvent(restoreStateIdentifier);
+                        }
+                    });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        result.success(null);
+    }
+
+    private void destroyClient(MethodChannel.Result result) {
+        if (bleAdapter != null) {
+            bleAdapter.destroyClient();
+        }
+        scanningStreamHandler.onComplete();
+        connectionStateStreamHandler.onComplete();
+        bleAdapter = null;
+        delegates.clear();
+        result.success(null);
+    }
+
+    private void startDeviceScan(@NonNull MethodCall call, MethodChannel.Result result) {
+        JSONObject arg = (JSONObject) call.arguments;
+        ArrayList<String> uuids = new ArrayList<String>();
+        try {
+            for (int i = 0 ; i < arg.getJSONArray(ArgumentKey.UUIDS).length() ; i++) {
+                uuids.add(arg.getJSONArray(ArgumentKey.UUIDS).get(i).toString());
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "exception " + e.getMessage());
+        }
+
+        bleAdapter.startDeviceScan(uuids.toArray(new String[uuids.size()]),
+                call.<Integer>argument(ArgumentKey.SCAN_MODE),
+                call.<Integer>argument(ArgumentKey.CALLBACK_TYPE),
+                new OnEventCallback<ScanResult>() {
+                    @Override
+                    public void onEvent(ScanResult data) {
+                        scanningStreamHandler.onScanResult(data);
+                    }
+                }, new OnErrorCallback() {
+                    @Override
+                    public void onError(BleError error) {
+                        scanningStreamHandler.onError(error);
+                    }
+                });
+        result.success(null);
+    }
+
+    private void stopDeviceScan(MethodChannel.Result result) {
+        if (bleAdapter != null) {
+            bleAdapter.stopDeviceScan();
+        }
+        scanningStreamHandler.onComplete();
+        result.success(null);
+    }
+
+    private void cancelTransaction(MethodCall call, MethodChannel.Result result) {
+        JSONObject arg = (JSONObject) call.arguments;
+        try {
+            if (bleAdapter != null) {
+                bleAdapter.cancelTransaction(arg.getString(ArgumentKey.TRANSACTION_ID));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        result.success(null);
+    }
+
     @Override
     public void onMethodCall(@NonNull MethodCall call, @NonNull MethodChannel.Result result) {
+        Log.d(TAG, "on native side observed method: " + call.method);
         String method = call.method;
+        for (CallDelegate delegate : delegates) {
+            if (delegate.canHandle(call)) {
+                delegate.onMethodCall(call, result);
+                return;
+            }
+        }
 
         try {
+            if (method.equalsIgnoreCase(MethodName.CREATE_CLIENT)) {
+                createClient(call, result);
+                return;
+            }
+            if (method.equalsIgnoreCase(MethodName.DESTROY_CLIENT)) {
+                destroyClient(result);
+                return;
+            }
+            if (method.equalsIgnoreCase(MethodName.START_DEVICE_SCAN)) {
+                startDeviceScan(call, result);
+                return;
+            }
+            if (method.equalsIgnoreCase(MethodName.STOP_DEVICE_SCAN)) {
+                stopDeviceScan(result);
+                return;
+            }
+            if (method.equalsIgnoreCase(MethodName.CANCEL_TRANSACTION)) {
+                cancelTransaction(call, result);
+                return;
+            }
+            if (method.equalsIgnoreCase(MethodName.IS_CLIENT_CREATED)) {
+                isClientCreated(result);
+                return;
+            }
             if (method.equalsIgnoreCase("setNotificationInfo")) {
                 JSONObject arg = (JSONObject) call.arguments;
                 if (arg.has("title")) {
@@ -325,7 +511,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                 return;
             }
         } catch (JSONException e) {
-            Log.e(TAG, e.getMessage());
+            Log.e(TAG, "exception occured " + e.getMessage());
             e.printStackTrace();
         }
 

@@ -8,12 +8,12 @@ class BackgroundService {
   bool _isFromInitialization = false;
   bool _isRunning = false;
   bool _isMainChannel = false;
-  static const MethodChannel _backgroundChannel = const MethodChannel(
+  static const MethodChannel backgroundChannel = const MethodChannel(
     'id.flutter/background_service_bg',
     JSONMethodCodec(),
   );
 
-  static const MethodChannel _mainChannel = const MethodChannel(
+  static const MethodChannel mainChannel = const MethodChannel(
     'id.flutter/background_service',
     JSONMethodCodec(),
   );
@@ -27,12 +27,12 @@ class BackgroundService {
     _isFromInitialization = true;
     _isRunning = true;
     _isMainChannel = true;
-    _mainChannel.setMethodCallHandler(_handle);
+    mainChannel.setMethodCallHandler(_handle);
   }
 
   void _setupBackground() {
     _isRunning = true;
-    _backgroundChannel.setMethodCallHandler(_handle);
+    backgroundChannel.setMethodCallHandler(_handle);
   }
 
   Future<dynamic> _handle(MethodCall call) async {
@@ -59,7 +59,7 @@ class BackgroundService {
     final service = BackgroundService();
     service._setupMain();
 
-    final r = await _mainChannel.invokeMethod(
+    final r = await mainChannel.invokeMethod(
       "BackgroundService.start",
       {
         "handle": handle.toRawHandle(),
@@ -78,18 +78,18 @@ class BackgroundService {
       return;
     }
     if (_isFromInitialization) {
-      _mainChannel.invokeMethod("sendData", data);
+      mainChannel.invokeMethod("sendData", data);
       return;
     }
 
-    _backgroundChannel.invokeMethod("sendData", data);
+    backgroundChannel.invokeMethod("sendData", data);
   }
 
   // Set Foreground Notification Information
   // Only available when foreground mode is true
   void setNotificationInfo({String? title, String? content}) {
     if (Platform.isAndroid)
-      _backgroundChannel.invokeMethod("setNotificationInfo", {
+      backgroundChannel.invokeMethod("setNotificationInfo", {
         "title": title,
         "content": content,
       });
@@ -99,14 +99,14 @@ class BackgroundService {
   // Only for Android
   void setForegroundMode(bool value) {
     if (Platform.isAndroid)
-      _backgroundChannel.invokeMethod("setForegroundMode", {
+      backgroundChannel.invokeMethod("setForegroundMode", {
         "value": value,
       });
   }
 
   Future<bool> isServiceRunning() async {
     if (_isMainChannel) {
-      var result = await _mainChannel.invokeMethod("isServiceRunning");
+      var result = await mainChannel.invokeMethod("isServiceRunning");
       return result ?? false;
     } else {
       return _isRunning;
@@ -116,13 +116,13 @@ class BackgroundService {
   // StopBackgroundService from Running
   void stopBackgroundService() {
     //TODO: Remove this check once implemented for IOS.
-    if (Platform.isAndroid) _backgroundChannel.invokeMethod("stopService");
+    if (Platform.isAndroid) backgroundChannel.invokeMethod("stopService");
     _isRunning = false;
   }
 
   void setAutoStartOnBootMode(bool value) {
     if (Platform.isAndroid)
-      _backgroundChannel.invokeMethod("setAutoStartOnBootMode", {
+      backgroundChannel.invokeMethod("setAutoStartOnBootMode", {
         "value": value,
       });
   }
