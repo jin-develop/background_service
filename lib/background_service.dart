@@ -10,7 +10,7 @@ class BackgroundService {
   bool _isMainChannel = false;
   static const MethodChannel backgroundChannel = const MethodChannel(
     'id.flutter/background_service_bg',
-    JSONMethodCodec(),
+    //JSONMethodCodec(),
   );
 
   static const MethodChannel mainChannel = const MethodChannel(
@@ -59,14 +59,22 @@ class BackgroundService {
     final service = BackgroundService();
     service._setupMain();
 
-    final r = await mainChannel.invokeMethod(
-      "BackgroundService.start",
-      {
-        "handle": handle.toRawHandle(),
-        "is_foreground_mode": foreground,
-        "auto_start_on_boot": autoStart,
-      },
-    );
+    var r;
+    if (Platform.isIOS) {
+      r = await mainChannel.invokeMethod(
+        "BackgroundService.start",
+        <dynamic>[handle.toRawHandle()],
+      );
+    } else {
+      r = await mainChannel.invokeMethod(
+        "BackgroundService.start",
+        {
+          "handle": handle.toRawHandle(),
+          "is_foreground_mode": foreground,
+          "auto_start_on_boot": autoStart,
+        },
+      );
+    }
 
     return r ?? false;
   }

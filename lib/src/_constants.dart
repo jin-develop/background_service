@@ -74,7 +74,7 @@ abstract class MethodName {
 }
 
 abstract class ChannelName {
-  static const String flutterBleLib = "flutter_ble_lib";
+  static const String flutterBleLib = "id.flutter/background_service_bg";
   static const String adapterStateChanges = flutterBleLib + "/stateChanges";
   static const String stateRestoreEvents =
       flutterBleLib + "/stateRestoreEvents";
