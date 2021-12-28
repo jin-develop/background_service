@@ -153,6 +153,10 @@
         [self readRSSIForDevice:call result:result];
     } else if ([METHOD_NAME_CANCEL_TRANSACTION isEqualToString:call.method]) {
         [self cancelTransaction:call result:result];
+    } else if ([METHOD_NAME_SEND_DATA isEqualToString:call.method]) {
+        result(nil);
+    } else if ([METHOD_NAME_SERVICE_RUN isEqualToString:call.method]) {
+        result(nil);
     } else {
         result(FlutterMethodNotImplemented);
     }

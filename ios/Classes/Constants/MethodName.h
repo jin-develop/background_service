@@ -3,6 +3,8 @@ extern NSString * const METHOD_NAME_CREATE_CLIENT;
 extern NSString * const METHOD_NAME_DESTROY_CLIENT;
 
 extern NSString * const METHOD_NAME_CANCEL_TRANSACTION;
+extern NSString * const METHOD_NAME_SEND_DATA;
+extern NSString * const METHOD_NAME_SERVICE_RUN;
 
 extern NSString * const METHOD_NAME_GET_STATE;
 

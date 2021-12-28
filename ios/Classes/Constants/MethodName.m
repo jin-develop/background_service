@@ -3,6 +3,8 @@ NSString * const METHOD_NAME_CREATE_CLIENT = @"createClient";
 NSString * const METHOD_NAME_DESTROY_CLIENT = @"destroyClient";
 
 NSString * const METHOD_NAME_CANCEL_TRANSACTION = @"cancelTransaction";
+NSString * const METHOD_NAME_SEND_DATA = @"sendData";
+NSString * const METHOD_NAME_SERVICE_RUN = @"isServiceRunning";
 
 NSString * const METHOD_NAME_GET_STATE = @"getState";
 
