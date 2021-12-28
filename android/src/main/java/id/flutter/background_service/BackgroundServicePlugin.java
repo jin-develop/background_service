@@ -47,7 +47,7 @@ public class BackgroundServicePlugin extends BroadcastReceiver implements Flutte
     LocalBroadcastManager localBroadcastManager = LocalBroadcastManager.getInstance(this.context);
     localBroadcastManager.registerReceiver(this, new IntentFilter("id.flutter/background_service"));
 
-    channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "id.flutter/background_service", JSONMethodCodec.INSTANCE);
+    channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "id.flutter/background_service");
     channel.setMethodCallHandler(this);
   }
 
@@ -56,7 +56,7 @@ public class BackgroundServicePlugin extends BroadcastReceiver implements Flutte
     final BackgroundServicePlugin plugin = new BackgroundServicePlugin();
     localBroadcastManager.registerReceiver(plugin, new IntentFilter("id.flutter/background_service"));
 
-    final MethodChannel channel = new MethodChannel(registrar.messenger(), "id.flutter/background_service", JSONMethodCodec.INSTANCE);
+    final MethodChannel channel = new MethodChannel(registrar.messenger(), "id.flutter/background_service");
     channel.setMethodCallHandler(plugin);
     plugin.channel = channel;
   }
@@ -64,14 +64,13 @@ public class BackgroundServicePlugin extends BroadcastReceiver implements Flutte
   @Override
   public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
     String method = call.method;
-    JSONObject arg = (JSONObject) call.arguments;
 
     try {
 
       if ("BackgroundService.start".equals(method)) {
-        long callbackHandle = arg.getLong("handle");
-        boolean isForeground = arg.getBoolean("is_foreground_mode");
-        boolean autoStartOnBoot = arg.getBoolean("auto_start_on_boot");
+        long callbackHandle = call.<Long>argument("handle");
+        boolean isForeground = call.<Boolean>argument("is_foreground_mode");
+        boolean autoStartOnBoot = call.<Boolean>argument("auto_start_on_boot");
 
         BackgroundService.setCallbackDispatcher(context, callbackHandle, isForeground, autoStartOnBoot);
 
@@ -89,7 +88,7 @@ public class BackgroundServicePlugin extends BroadcastReceiver implements Flutte
       if (method.equalsIgnoreCase("sendData")) {
         for (BackgroundServicePlugin plugin : _instances) {
           if (plugin.service != null) {
-            plugin.service.receiveData((JSONObject) call.arguments);
+            plugin.service.receiveData(call);
             break;
           }
         }
@@ -131,12 +130,9 @@ public class BackgroundServicePlugin extends BroadcastReceiver implements Flutte
     if (intent.getAction().equalsIgnoreCase("id.flutter/background_service")){
       String data = intent.getStringExtra("data");
       try {
-        JSONObject jData = new JSONObject(data);
         if (channel != null){
-          channel.invokeMethod("onReceiveData", jData);
+          channel.invokeMethod("onReceiveData", data);
         }
-      }catch (JSONException e){
-        e.printStackTrace();
       } catch (Exception e){
         e.printStackTrace();
       }

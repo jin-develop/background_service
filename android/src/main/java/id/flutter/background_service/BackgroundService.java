@@ -52,6 +52,9 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.lang.UnsatisfiedLinkError;
 
@@ -137,24 +140,24 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
             if (methodChannel == null) {
                 return;
             }
-            JSONObject json = new JSONObject();
+            Map<String, String> obj = new HashMap<>();
             if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
                 final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
 
                 switch (state) {
                     case BluetoothAdapter.STATE_ON:
                         try {
-                            json.put("state", "btON");
-                            methodChannel.invokeMethod("onReceiveData", json);
-                        } catch (JSONException e) {
+                            obj.put("state", "btON");
+                            methodChannel.invokeMethod("onReceiveData", obj);
+                        } catch (Exception e) {
                             e.printStackTrace();
                         }
                         break;
                     case BluetoothAdapter.STATE_OFF:
                         try {
-                            json.put("state", "btOFF");
-                            methodChannel.invokeMethod("onReceiveData", json);
-                        } catch (JSONException e) {
+                            obj.put("state", "btOFF");
+                            methodChannel.invokeMethod("onReceiveData", obj);
+                        } catch (Exception e) {
                             e.printStackTrace();
                         }
                         break;
@@ -170,16 +173,16 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                 boolean gps_state = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
                 if (gps_state) {
                     try {
-                        json.put("state", "gpsON");
-                        methodChannel.invokeMethod("onReceiveData", json);
-                    } catch (JSONException e) {
+                        obj.put("state", "gpsON");
+                        methodChannel.invokeMethod("onReceiveData", obj);
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 } else {
                     try {
-                        json.put("state", "gpsOFF");
-                        methodChannel.invokeMethod("onReceiveData", json);
-                    } catch (JSONException e) {
+                        obj.put("state", "gpsOFF");
+                        methodChannel.invokeMethod("onReceiveData", obj);
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
@@ -302,7 +305,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
             backgroundEngine = new FlutterEngine(this);
             backgroundEngine.getServiceControlSurface().attachToService(BackgroundService.this, null, isForegroundService(this));
 
-            methodChannel = new MethodChannel(backgroundEngine.getDartExecutor().getBinaryMessenger(), "id.flutter/background_service_bg", JSONMethodCodec.INSTANCE);
+            methodChannel = new MethodChannel(backgroundEngine.getDartExecutor().getBinaryMessenger(), "id.flutter/background_service_bg");
 
             final EventChannel bluetoothStateChannel = new EventChannel(backgroundEngine.getDartExecutor().getBinaryMessenger(), ChannelName.ADAPTER_STATE_CHANGES);
             final EventChannel restoreStateChannel = new EventChannel(backgroundEngine.getDartExecutor().getBinaryMessenger(), ChannelName.STATE_RESTORE_EVENTS);
@@ -325,10 +328,10 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         }
     }
 
-    public void receiveData(JSONObject data) {
+    public void receiveData(MethodCall call) {
         if (methodChannel != null) {
             try {
-                methodChannel.invokeMethod("onReceiveData", data);
+                methodChannel.invokeMethod("onReceiveData", call.arguments);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -341,13 +344,11 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
     private void createClient(MethodCall call, MethodChannel.Result result) {
         try {
-            JSONObject arg = (JSONObject) call.arguments;
-
             if (bleAdapter != null) {
                 Log.w(TAG, "Overwriting existing native client. Use BleManager#isClientCreated to check whether a client already exists.");
             }
             setupAdapter(getApplicationContext());
-            bleAdapter.createClient(arg.getString(ArgumentKey.RESTORE_STATE_IDENTIFIER),
+            bleAdapter.createClient(call.<String>argument(ArgumentKey.RESTORE_STATE_IDENTIFIER),
                     new OnEventCallback<String>() {
                         @Override
                         public void onEvent(String adapterState) {
@@ -378,16 +379,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
     }
 
     private void startDeviceScan(@NonNull MethodCall call, MethodChannel.Result result) {
-        JSONObject arg = (JSONObject) call.arguments;
-        ArrayList<String> uuids = new ArrayList<String>();
-        try {
-            for (int i = 0 ; i < arg.getJSONArray(ArgumentKey.UUIDS).length() ; i++) {
-                uuids.add(arg.getJSONArray(ArgumentKey.UUIDS).get(i).toString());
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "exception " + e.getMessage());
-        }
-
+        List<String> uuids = call.<List<String>>argument(ArgumentKey.UUIDS);
         bleAdapter.startDeviceScan(uuids.toArray(new String[uuids.size()]),
                 call.<Integer>argument(ArgumentKey.SCAN_MODE),
                 call.<Integer>argument(ArgumentKey.CALLBACK_TYPE),
@@ -414,10 +406,9 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
     }
 
     private void cancelTransaction(MethodCall call, MethodChannel.Result result) {
-        JSONObject arg = (JSONObject) call.arguments;
         try {
             if (bleAdapter != null) {
-                bleAdapter.cancelTransaction(arg.getString(ArgumentKey.TRANSACTION_ID));
+                bleAdapter.cancelTransaction(call.<String>argument(ArgumentKey.TRANSACTION_ID));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -463,27 +454,22 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                 return;
             }
             if (method.equalsIgnoreCase("setNotificationInfo")) {
-                JSONObject arg = (JSONObject) call.arguments;
-                if (arg.has("title")) {
-                    notificationTitle = arg.getString("title");
-                    notificationContent = arg.getString("content");
+                    notificationTitle = call.<String>argument("title");
+                    notificationContent = call.<String>argument("content");
                     updateNotificationInfo();
                     result.success(true);
                     return;
-                }
             }
 
             if (method.equalsIgnoreCase("setAutoStartOnBootMode")) {
-                JSONObject arg = (JSONObject) call.arguments;
-                boolean value = arg.getBoolean("value");
+                boolean value = call.<Boolean>argument("value");
                 setAutoStartOnBootMode(value);
                 result.success(true);
                 return;
             }
 
             if (method.equalsIgnoreCase("setForegroundMode")) {
-                JSONObject arg = (JSONObject) call.arguments;
-                boolean value = arg.getBoolean("value");
+                boolean value = call.<Boolean>argument("value");
                 setForegroundServiceMode(value);
                 if (value) {
                     updateNotificationInfo();
@@ -505,12 +491,12 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
             if (method.equalsIgnoreCase("sendData")) {
                 LocalBroadcastManager manager = LocalBroadcastManager.getInstance(this);
                 Intent intent = new Intent("id.flutter/background_service");
-                intent.putExtra("data", ((JSONObject) call.arguments).toString());
+                intent.putExtra("data", call.arguments.toString());
                 manager.sendBroadcast(intent);
                 result.success(true);
                 return;
             }
-        } catch (JSONException e) {
+        } catch (Exception e) {
             Log.e(TAG, "exception occured " + e.getMessage());
             e.printStackTrace();
         }

@@ -9,13 +9,11 @@ class BackgroundService {
   bool _isRunning = false;
   bool _isMainChannel = false;
   static const MethodChannel backgroundChannel = const MethodChannel(
-    'id.flutter/background_service_bg',
-    //JSONMethodCodec(),
+    'id.flutter/background_service_bg'
   );
 
   static const MethodChannel mainChannel = const MethodChannel(
-    'id.flutter/background_service',
-    JSONMethodCodec(),
+    'id.flutter/background_service'
   );
 
   static BackgroundService _instance =
@@ -38,7 +36,9 @@ class BackgroundService {
   Future<dynamic> _handle(MethodCall call) async {
     switch (call.method) {
       case "onReceiveData":
-        _streamController.sink.add(call.arguments);
+        Map<String, dynamic> message =
+              Map<String, dynamic>.from(call.arguments);
+        _streamController.sink.add(message);
         break;
       default:
     }
@@ -59,38 +59,30 @@ class BackgroundService {
     final service = BackgroundService();
     service._setupMain();
 
-    var r;
-    if (Platform.isIOS) {
-      r = await mainChannel.invokeMethod(
-        "BackgroundService.start",
-        <dynamic>[handle.toRawHandle()],
-      );
-    } else {
-      r = await mainChannel.invokeMethod(
-        "BackgroundService.start",
-        {
-          "handle": handle.toRawHandle(),
-          "is_foreground_mode": foreground,
-          "auto_start_on_boot": autoStart,
-        },
-      );
-    }
+    final r = await mainChannel.invokeMethod(
+      "BackgroundService.start",
+      <String, dynamic>{
+        "handle": handle.toRawHandle(),
+        "is_foreground_mode": foreground,
+        "auto_start_on_boot": autoStart
+      },
+    );
 
     return r ?? false;
   }
 
   // Send data from UI to Service, or from Service to UI
-  void sendData(Map<String, dynamic> data) async {
+  void sendData({String? action}) async {
     if (!(await (isServiceRunning()))) {
       dispose();
       return;
     }
     if (_isFromInitialization) {
-      mainChannel.invokeMethod("sendData", data);
+      mainChannel.invokeMethod("sendData", {"action":action});
       return;
     }
 
-    backgroundChannel.invokeMethod("sendData", data);
+    backgroundChannel.invokeMethod("sendData", {"action":action});
   }
 
   // Set Foreground Notification Information
