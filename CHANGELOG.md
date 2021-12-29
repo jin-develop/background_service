@@ -25,3 +25,7 @@
 ## 0.1.0
 
 * Fixed context missing when stop service
+
+## 1.0.0
+
+* Add bluetooth service for background scan
