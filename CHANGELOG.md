@@ -29,3 +29,7 @@
 ## 1.0.0
 
 * Add bluetooth service for background scan
+
+## 1.0.1
+
+* Update plugin version and code format fixed
