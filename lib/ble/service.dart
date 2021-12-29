@@ -19,9 +19,9 @@ class Service extends InternalService {
     Map<String, dynamic> jsonObject,
     Peripheral peripheral,
     this._manager,
-  ) : peripheral = peripheral,
-      uuid = jsonObject[_ServiceMetadata.uuid],
-      super(jsonObject[_ServiceMetadata.id]);
+  )   : peripheral = peripheral,
+        uuid = jsonObject[_ServiceMetadata.uuid],
+        super(jsonObject[_ServiceMetadata.id]);
 
   /// Returns a list of [Characteristic]s of this service.
   Future<List<Characteristic>> characteristics() =>

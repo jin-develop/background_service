@@ -13,8 +13,8 @@ mixin LogLevelMixin on FlutterBLE {
   }
 
   Future<LogLevel> logLevel() async {
-    String logLevelName =
-        await BackgroundService.backgroundChannel.invokeMethod(MethodName.logLevel);
+    String logLevelName = await BackgroundService.backgroundChannel
+        .invokeMethod(MethodName.logLevel);
     return _logLevelFromString(logLevelName);
   }
 

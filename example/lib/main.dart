@@ -76,22 +76,19 @@ class _MyAppState extends State<MyApp> {
             ElevatedButton(
               child: Text("Foreground Mode"),
               onPressed: () {
-                BackgroundService()
-                    .sendData({"action": "setAsForeground"});
+                BackgroundService().sendData({"action": "setAsForeground"});
               },
             ),
             ElevatedButton(
               child: Text("Background Mode"),
               onPressed: () {
-                BackgroundService()
-                    .sendData({"action": "setAsBackground"});
+                BackgroundService().sendData({"action": "setAsBackground"});
               },
             ),
             ElevatedButton(
               child: Text(text),
               onPressed: () async {
-                var isRunning =
-                await BackgroundService().isServiceRunning();
+                var isRunning = await BackgroundService().isServiceRunning();
                 if (isRunning) {
                   BackgroundService().sendData(
                     {"action": "stopService"},

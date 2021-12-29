@@ -8,16 +8,14 @@ class BackgroundService {
   bool _isFromInitialization = false;
   bool _isRunning = false;
   bool _isMainChannel = false;
-  static const MethodChannel backgroundChannel = const MethodChannel(
-    'id.flutter/background_service_bg'
-  );
+  static const MethodChannel backgroundChannel =
+      const MethodChannel('id.flutter/background_service_bg');
 
-  static const MethodChannel mainChannel = const MethodChannel(
-    'id.flutter/background_service'
-  );
+  static const MethodChannel mainChannel =
+      const MethodChannel('id.flutter/background_service');
 
-  static BackgroundService _instance =
-  BackgroundService._internal().._setupBackground();
+  static BackgroundService _instance = BackgroundService._internal()
+    .._setupBackground();
   BackgroundService._internal();
   factory BackgroundService() => _instance;
 
@@ -37,7 +35,7 @@ class BackgroundService {
     switch (call.method) {
       case "onReceiveData":
         Map<String, dynamic> message =
-              Map<String, dynamic>.from(call.arguments);
+            Map<String, dynamic>.from(call.arguments);
         _streamController.sink.add(message);
         break;
       default:
@@ -47,10 +45,10 @@ class BackgroundService {
   }
 
   static Future<bool> initialize(
-      Function onStart, {
-        bool foreground = true,
-        bool autoStart = true,
-      }) async {
+    Function onStart, {
+    bool foreground = true,
+    bool autoStart = true,
+  }) async {
     final CallbackHandle? handle = PluginUtilities.getCallbackHandle(onStart);
     if (handle == null) {
       return false;
@@ -78,11 +76,11 @@ class BackgroundService {
       return;
     }
     if (_isFromInitialization) {
-      mainChannel.invokeMethod("sendData", {"action":action});
+      mainChannel.invokeMethod("sendData", {"action": action});
       return;
     }
 
-    backgroundChannel.invokeMethod("sendData", {"action":action});
+    backgroundChannel.invokeMethod("sendData", {"action": action});
   }
 
   // Set Foreground Notification Information
@@ -128,7 +126,7 @@ class BackgroundService {
   }
 
   StreamController<Map<String, dynamic>?> _streamController =
-  StreamController.broadcast();
+      StreamController.broadcast();
 
   Stream<Map<String, dynamic>?> get onDataReceived => _streamController.stream;
 
@@ -136,4 +134,3 @@ class BackgroundService {
     _streamController.close();
   }
 }
-
