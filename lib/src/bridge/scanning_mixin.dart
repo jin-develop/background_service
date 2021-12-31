@@ -41,11 +41,14 @@ mixin ScanningMixin on FlutterBLE {
           ArgumentName.allowDuplicates: allowDuplicates,
         },
       ),
-      onCancel: () => stopDeviceScan(),
+      onCancel: () {
+        print("startDeviceScan onCancel");
+        stopDeviceScan();
+      },
     );
 
     streamController
-        .addStream(_scanEvents, cancelOnError: true)
+        .addStream(_scanEvents, cancelOnError: false)
         .then((_) => streamController.close());
 
     return streamController.stream;

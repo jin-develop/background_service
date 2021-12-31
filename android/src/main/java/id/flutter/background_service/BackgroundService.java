@@ -419,7 +419,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
     @Override
     public void onMethodCall(@NonNull MethodCall call, @NonNull MethodChannel.Result result) {
-        Log.d(TAG, "on native side observed method: " + call.method);
+        Log.d(TAG, "background onMethodCall : " + call.method);
         String method = call.method;
         for (CallDelegate delegate : delegates) {
             if (delegate.canHandle(call)) {
