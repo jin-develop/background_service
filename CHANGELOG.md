@@ -33,3 +33,7 @@
 ## 1.0.1
 
 * Update plugin version and code format fixed
+
+## 1.0.2
+
+* Fixed stop ble scan after bt turn off -> on
