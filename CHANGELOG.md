@@ -45,3 +45,7 @@
 ## 1.0.4
 
 * Fixed example app and noti intent update depends on gps
+
+## 1.0.5
+
+* Applied Android sdk version 31
