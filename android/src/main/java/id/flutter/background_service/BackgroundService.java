@@ -244,7 +244,8 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
     protected void updateNotificationInfo() {
         if (isForegroundService(this)) {
             LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-            boolean gps_state = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+            boolean gps_state = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+                    && locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
             boolean bt_state = BluetoothAdapter.getDefaultAdapter().isEnabled();
             String packageName = getApplicationContext().getPackageName();
             Intent intent = getPackageManager().getLaunchIntentForPackage(packageName);
