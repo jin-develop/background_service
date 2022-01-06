@@ -41,3 +41,7 @@
 ## 1.0.3
 
 * Monitoring high accuracy location mode
+
+## 1.0.4
+
+* Fixed example app and noti intent update depends on gps
