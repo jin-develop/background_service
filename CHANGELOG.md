@@ -37,3 +37,7 @@
 ## 1.0.2
 
 * Fixed stop ble scan after bt turn off -> on
+
+## 1.0.3
+
+* Monitoring high accuracy location mode
