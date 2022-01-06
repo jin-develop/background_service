@@ -170,8 +170,9 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                 }
             } else if(action.equals(LocationManager.PROVIDERS_CHANGED_ACTION)) {
                 LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+                boolean network_provider_state = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
                 boolean gps_state = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-                if (gps_state) {
+                if (gps_state && network_provider_state) {
                     try {
                         obj.put("state", "gpsON");
                         methodChannel.invokeMethod("onReceiveData", obj);
