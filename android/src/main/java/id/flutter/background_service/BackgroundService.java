@@ -260,7 +260,12 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                 intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
             }
 
-            PendingIntent pi = PendingIntent.getActivity(BackgroundService.this, 1, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+            PendingIntent pi;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                pi = PendingIntent.getActivity(BackgroundService.this, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            } else {
+                pi = PendingIntent.getActivity(BackgroundService.this, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+            }
             NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, "CHANNEL_DEFAULT")
                     .setSmallIcon(resource)
                     .setAutoCancel(true)
