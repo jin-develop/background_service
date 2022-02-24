@@ -49,3 +49,7 @@
 ## 1.0.5
 
 * Applied Android sdk version 31
+
+## 1.1.0
+
+* Change pendingIntent flag for sdk31
