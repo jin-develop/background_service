@@ -53,3 +53,7 @@
 ## 1.1.0
 
 * Change pendingIntent flag for sdk31
+
+## 1.1.1
+
+* Update dependency and remove deprecated
