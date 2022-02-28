@@ -58,6 +58,6 @@
 
 * Update dependency and remove deprecated
 
-## 1.1.1
+## 1.1.2
 
 * Change ble adapter version 0.1.8
