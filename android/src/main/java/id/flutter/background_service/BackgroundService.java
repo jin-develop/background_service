@@ -108,7 +108,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
     public static boolean isAutoStartOnBootMode(Context context) {
         SharedPreferences pref = context.getSharedPreferences("id.flutter.background_service", MODE_PRIVATE);
-        return pref.getBoolean("auto_start_on_boot", true);
+        return pref.getBoolean("auto_start_on_boot", false);
     }
 
     public void setForegroundServiceMode(boolean value) {

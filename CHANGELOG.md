@@ -61,3 +61,7 @@
 ## 1.1.2
 
 * Change ble adapter version 0.1.8
+
+## 1.1.3
+
+* prevent service auto start when reboot

@@ -46,8 +46,8 @@ class BackgroundService {
 
   static Future<bool> initialize(
     Function onStart, {
-    bool foreground = true,
-    bool autoStart = true,
+    bool foreground = false,
+    bool autoStart = false,
   }) async {
     final CallbackHandle? handle = PluginUtilities.getCallbackHandle(onStart);
     if (handle == null) {
