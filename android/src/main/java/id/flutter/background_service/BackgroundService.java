@@ -14,6 +14,7 @@ import android.content.pm.PackageInfo;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -168,7 +169,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                         Log.d(TAG,"STATE_TURNING_OFF");
                         break;
                 }
-            } else if(action.equals(LocationManager.PROVIDERS_CHANGED_ACTION)) {
+            } else if (action.equals(LocationManager.PROVIDERS_CHANGED_ACTION)) {
                 LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
                 boolean network_provider_state = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
                 boolean gps_state = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
@@ -182,6 +183,23 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                 } else {
                     try {
                         obj.put("state", "gpsOFF");
+                        methodChannel.invokeMethod("onReceiveData", obj);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            } else if (action.equals(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)) {
+                PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+                if (pm.isPowerSaveMode()) {
+                    try {
+                        obj.put("state", "powersaveON");
+                        methodChannel.invokeMethod("onReceiveData", obj);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    try {
+                        obj.put("state", "powersaveOFF");
                         methodChannel.invokeMethod("onReceiveData", obj);
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -208,6 +226,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         IntentFilter intent = new IntentFilter();
         intent.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
         intent.addAction(LocationManager.PROVIDERS_CHANGED_ACTION);
+        intent.addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED);
         registerReceiver(mBroadCastReceiver, intent);
     }
 
@@ -244,13 +263,17 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
     protected void updateNotificationInfo() {
         if (isForegroundService(this)) {
             LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
             boolean gps_state = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
                     && locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
             boolean bt_state = BluetoothAdapter.getDefaultAdapter().isEnabled();
+            boolean power_mode = pm.isPowerSaveMode();
             String packageName = getApplicationContext().getPackageName();
             Intent intent = getPackageManager().getLaunchIntentForPackage(packageName);
             int resource = R.drawable.noti_not_running;
-            if (gps_state && bt_state) {
+            if (power_mode) {
+                intent = new Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS);
+            } else if (gps_state && bt_state) {
                 resource = R.drawable.noti_running;
             } else if (gps_state && !bt_state) {
                 intent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
