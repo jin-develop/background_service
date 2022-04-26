@@ -65,3 +65,7 @@
 ## 1.1.3
 
 * prevent service auto start when reboot
+
+## 1.1.4
+
+* Add check state for android powersave
