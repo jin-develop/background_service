@@ -1,5 +1,6 @@
 package id.flutter.background_service;
 
+import android.Manifest;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -11,6 +12,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.IBinder;
@@ -45,6 +47,7 @@ import com.polidea.multiplatformbleadapter.errors.BleError;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import org.json.JSONException;
@@ -97,7 +100,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         SharedPreferences pref = context.getSharedPreferences("id.flutter.background_service", MODE_PRIVATE);
         pref.edit()
                 .putLong("callback_handle", callbackHandleId)
-                .putBoolean("is_foreground", isForeground)
+                .putBoolean("is_foreground_mode", isForeground)
                 .putBoolean("auto_start_on_boot", autoStartOnBoot)
                 .apply();
     }
@@ -114,12 +117,12 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
     public void setForegroundServiceMode(boolean value) {
         SharedPreferences pref = getSharedPreferences("id.flutter.background_service", MODE_PRIVATE);
-        pref.edit().putBoolean("is_foreground", value).apply();
+        pref.edit().putBoolean("is_foreground_mode", value).apply();
     }
 
     public static boolean isForegroundService(Context context) {
         SharedPreferences pref = context.getSharedPreferences("id.flutter.background_service", MODE_PRIVATE);
-        return pref.getBoolean("is_foreground", true);
+        return pref.getBoolean("is_foreground_mode", false);
     }
 
     private void setupAdapter(Context context) {
@@ -245,6 +248,34 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         super.onDestroy();
     }
 
+    private boolean checkPermissions() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            notificationTitle = "위치정보 사용권한이 없습니다.";
+            notificationContent = "여기를 터치하고 위치정보 사용을 허가해 주세요.";
+            return false;
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) {
+                    notificationTitle = "신체정보 사용권한이 없습니다.";
+                    notificationContent = "여기를 터치하고 신체정보 사용을 허가해 주세요.";
+                    return false;
+                } else {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+                                || ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED
+                                || ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED) {
+                            notificationTitle = "근처 기기 사용권한이 부족합니다.";
+                            notificationContent = "여기를 터치하고 근처 기기 사용 권한을 허용해주세요.";
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             String channelId = "CHANNEL_DEFAULT";
@@ -274,9 +305,11 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
             if (power_mode) {
                 intent = new Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS);
             } else if (gps_state && bt_state) {
-                resource = R.drawable.noti_running;
+                if (checkPermissions()) {
+                    resource = R.drawable.noti_running;
+                }
             } else if (gps_state && !bt_state) {
-                intent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
+                intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             } else if (!gps_state && bt_state) {
                 intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
             } else {
@@ -303,9 +336,15 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        runService();
-
-        return START_STICKY;
+        SharedPreferences pref = this.getSharedPreferences("FlutterSharedPreferences", 0);
+        String mode = pref.getString("flutter.smartpassmode", "");
+        if (mode.equals("GS")) {
+            runService();
+            return START_STICKY;
+        } else {
+            stopSelf();
+            return START_NOT_STICKY;
+        }
     }
 
     @Override
