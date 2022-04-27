@@ -69,3 +69,7 @@
 ## 1.1.4
 
 * Add check state for android powersave
+
+## 1.1.5
+
+* Add check permission when service start
